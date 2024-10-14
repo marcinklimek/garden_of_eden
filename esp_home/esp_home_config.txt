@@ -1,0 +1,123 @@
+substitutions:
+ name: esphome-web-8bc358
+ friendly_name: jezus
+  
+
+esphome:
+ name: ${name}
+ friendly_name: ${friendly_name}
+ min_version: 2024.6.0
+ name_add_mac_suffix: false
+ project:
+  name: esphome.web
+  version: '1.0'
+
+esp32:
+ board: esp32dev
+ framework:
+  type: arduino
+
+
+# Enable logging
+logger:
+  
+
+# Enable Home Assistant API
+api:
+
+  
+# Allow Over-The-Air updates
+ota:
+- platform: esphome
+  
+
+# Allow provisioning Wi-Fi via serial
+
+improv_serial:
+
+wifi:
+
+ # Set up a wifi access point
+ ap: {}
+
+  
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device via WiFi AP.
+
+captive_portal:
+  
+
+dashboard_import:
+ package_import_url: github://esphome/example-configs/esphome-web/esp32.yaml@main
+ import_full_config: true
+
+# Sets up Bluetooth LE (Only on ESP32) to allow the user
+# to provision wifi credentials to the device.
+
+esp32_improv:
+ authorizer: none
+
+  
+
+# To have a "next url" for improv serial
+web_server:
+
+sensor:
+
+ - platform: adc
+  pin: GPIO36
+  name: "Soil Moisture 01"
+  update_interval: 1s
+  attenuation: 11db
+  raw: true
+
+ - platform: adc
+  pin: GPIO39
+  name: "Soil Moisture 02"
+  update_interval: 1s
+  attenuation: 11db
+  raw: true
+
+ - platform: adc
+  pin: GPIO34
+  name: "Soil Moisture 03"
+  update_interval: 1s
+  attenuation: 11db
+  raw: true
+
+output:
+ - platform: gpio
+  pin: GPIO21
+  id: 'out21'
+
+ - platform: gpio
+  pin: GPIO19
+  id: 'out19'
+
+ - platform: gpio
+  pin: GPIO18
+  id: 'out18'
+
+ - platform: gpio
+  pin: GPIO5
+  id: 'out5'
+
+
+switch:
+
+ - platform: output
+  name: "sw1"
+  output: 'out21'
+
+ - platform: output
+  name: "sw2"
+  output: 'out19'
+
+ - platform: output
+  name: "sw3"
+  output: 'out18'
+
+ - platform: output
+  name: "sw4"
+  output: 'out5'
