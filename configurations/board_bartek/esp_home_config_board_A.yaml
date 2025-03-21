@@ -1,54 +1,33 @@
-substitutions:
-  name: esphome-web-8bc358
-  friendly_name: maryja_nie_zawsze_dziewica
+###############################################################################
+# Garden Soil Moisture Sensor Configuration
+###############################################################################
 
+# Basic Information
 esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  min_version: 2024.6.0
-  name_add_mac_suffix: false
-  project:
-    name: esphome.web
-    version: "1.0"
+  name: garden-soil-sensor
+  friendly_name: "Garden Soil Sensor"
+  comment: "ESP32 board with soil moisture sensor for garden monitoring"
 
+# Calibration Constants
+substitutions:
+  dry_raw_value: "2900"  # ADC value when soil is completely dry
+  wet_raw_value: "1231"  # ADC value when soil is completely wet
+
+# ESP32 Board Configuration
 esp32:
   board: esp32dev
   framework:
     type: arduino
 
-# Web server for the ESPHome web interface (graphs, logs, etc.)
+# Enable Captive Portal for WiFi setup
+captive_portal:
+
+# Enable Web Server Interface
 web_server:
   port: 80
-  include_internal: true
   local: true
-  log: true
+  include_internal: true
 
-graph:
-  # Bare-minimum auto-ranged graph for Soil Moisture 01
-  - id: soil_moisture_graph
-    sensor: soil_moisture_01
-    duration: 1h
-    width: 600
-    height: 280
-  
-  # Multi-trace graph example
-  - id: multi_moisture_graph
-    duration: 1h
-    x_grid: 10min
-    y_grid: 1.0     # degC/div
-    width: 600
-    height: 280
-    traces:
-      - sensor: soil_moisture_01
-        line_type: DOTTED
-        continuous: true
-        line_thickness: 3
-        color: my_blue
-
-# Note: The "display:" section is removed because display output will be provided only on the web interface.
-
-# Enable logging
-logger:
 
 # Enable Home Assistant API
 api:
@@ -64,69 +43,76 @@ wifi:
   # Set up a Wi-Fi access point for provisioning
   ap: {}
 
-# Captive portal for provisioning Wi-Fi credentials
-captive_portal:
+# Enable Logging
+logger:
 
-dashboard_import:
-  package_import_url: github://esphome/example-configs/esphome-web/esp32.yaml@main
-  import_full_config: true
+# Time Management
+time:
+  - platform: homeassistant
+    id: homeassistant_time
 
-# Enable Bluetooth LE for provisioning Wi-Fi credentials (only on ESP32)
-esp32_improv:
-  authorizer: none
-
+# Soil Moisture Sensor
 sensor:
+  # Raw ADC reading from soil moisture sensor
   - platform: adc
     pin: GPIO36
-    name: "Soil Moisture 01"
+    name: "Soil Moisture Raw"
     update_interval: 1s
-    attenuation: 11db
+    attenuation: 12db
+    id: soil_moisture_raw
+    unit_of_measurement: "ADC"
+    state_class: "measurement"
+    accuracy_decimals: 0
     raw: true
-    internal: false
-    id: soil_moisture_01
+  
+  # Convert raw ADC reading to percentage
+  - platform: template
+    name: "Soil Moisture"
+    id: soil_moisture_percentage
+    unit_of_measurement: "%"
+    device_class: "moisture"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    lambda: |-
+      // Convert raw ADC to percentage (0-100%)
+      // Using configurable calibration values
+      float raw = id(soil_moisture_raw).state;
+      float dry_raw = atof("${dry_raw_value}");
+      float wet_raw = atof("${wet_raw_value}");
+      // Map range: remap from dry_raw-wet_raw to 0-100%
+      float percentage = 100.0 - ((raw - wet_raw) / (dry_raw - wet_raw) * 100.0);
+      // Constrain value between 0-100%
+      if (percentage < 0) percentage = 0;
+      if (percentage > 100) percentage = 100;
+      return percentage;
+    update_interval: 1s
 
+# Output pins for control (e.g., water pump, indicator LED)
 output:
   - platform: gpio
-    pin: GPIO21
-    id: out21
+    pin: GPIO16
+    id: out1
   - platform: gpio
-    pin: GPIO19
-    id: out19
-  - platform: gpio
-    pin: GPIO18
-    id: out18
-  - platform: gpio
-    pin: GPIO5
-    id: out5
+    pin: GPIO17
+    id: out2
 
+# Switches to control outputs
 switch:
   - platform: output
-    name: "sw1"
-    output: out21
+    name: "Water Pump"
+    output: out1
+    icon: "mdi:water-pump"
   - platform: output
-    name: "sw2"
-    output: out19
-  - platform: output
-    name: "sw3"
-    output: out18
-  - platform: output
-    name: "sw4"
-    output: out5
+    name: "Indicator"
+    output: out2
+    icon: "mdi:led-on"
 
-color:
-  - id: my_red
-    red: 100%
-    green: 0%
-    blue: 0%
-  - id: my_green
-    red: 0%
-    green: 100%
-    blue: 0%
-  - id: my_blue
-    red: 0%
-    green: 0%
-    blue: 100%
-  - id: my_yellow
-    red: 100%
-    green: 100%
-    blue: 0%
+# Binary sensor to trigger alerts based on moisture level
+binary_sensor:
+  - platform: template
+    name: "Low Soil Moisture Alert"
+    lambda: |-
+      return id(soil_moisture_percentage).state < 30.0;
+    filters:
+      - delayed_off: 10min
+    device_class: "moisture"
