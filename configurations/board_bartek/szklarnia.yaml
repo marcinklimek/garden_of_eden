@@ -4,14 +4,10 @@
 
 # Basic Information
 esphome:
-  name: garden-soil-sensor
-  friendly_name: "Garden Soil Sensor"
-  comment: "ESP32 board with soil moisture sensor for garden monitoring"
+  name: szklarnia
+  friendly_name: "szklarnia"
+  comment: "szklarnia"
 
-# Calibration Constants
-substitutions:
-  dry_raw_value: "2900"  # ADC value when soil is completely dry
-  wet_raw_value: "1231"  # ADC value when soil is completely wet
 
 # ESP32 Board Configuration
 esp32:
@@ -40,8 +36,8 @@ ota:
 improv_serial:
 
 wifi:
-  # Set up a Wi-Fi access point for provisioning
-  ap: {}
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
 
 # Enable Logging
 logger:
@@ -51,6 +47,14 @@ time:
   - platform: homeassistant
     id: homeassistant_time
 
+one_wire:
+  - platform: gpio
+    pin:
+      number: GPIO4
+
+    id: x1
+
+      
 # Soil Moisture Sensor
 sensor:
   # Raw ADC reading from soil moisture sensor
@@ -85,27 +89,24 @@ sensor:
       if (percentage < 0) percentage = 0;
       if (percentage > 100) percentage = 100;
       return percentage;
-    update_interval: 1s
+    update_interval: 100s
 
-# Output pins for control (e.g., water pump, indicator LED)
+  - platform: dallas_temp
+    name: "temperatura"
+    update_interval: 5s
+
 output:
   - platform: gpio
     pin: GPIO16
     id: out1
-  - platform: gpio
-    pin: GPIO17
-    id: out2
+
 
 # Switches to control outputs
 switch:
   - platform: output
-    name: "Water Pump"
+    name: "pompa"
     output: out1
     icon: "mdi:water-pump"
-  - platform: output
-    name: "Indicator"
-    output: out2
-    icon: "mdi:led-on"
 
 # Binary sensor to trigger alerts based on moisture level
 binary_sensor:
@@ -116,3 +117,4 @@ binary_sensor:
     filters:
       - delayed_off: 10min
     device_class: "moisture"
+

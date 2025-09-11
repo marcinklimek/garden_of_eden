@@ -16,6 +16,45 @@
 	- uv run upload board.yaml --device COM3  // --use-address <192.168.x.x>
 		- pay attantion to capital COM3 !!!
 
+- check the COM port number
+
+## how to set the WiFi ssid and pass
+
+
+Main yaml file.
+
+```shell
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+```
+
+secrets.yaml
+
+```shell
+# WiFi credentials
+wifi_ssid: "SSID"
+wifi_password: "password" 
+```
+
+
+## Board DNESP32
+
+Check `GND`. The esp modue should be placed right to the left side, close to the middle 8 pin. 
+
+```
+----------------------
+    xxxxxxxxxxxxxxxx|
+	xxxxxxxxxxxxxxxx|
+    xxxxxxxxxxxxxxxx|
+----------------------
+
+```
+
+No idea, bo probably this is the correct way of putting the ESP to the DIN board
+
+-------------------
+
 
 ## sensors
 
