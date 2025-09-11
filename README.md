@@ -45,13 +45,22 @@ Check `GND`. The esp modue should be placed right to the left side, close to the
 ```
 ----------------------
     xxxxxxxxxxxxxxxx|
-	xxxxxxxxxxxxxxxx|
+	  xxxxxxxxxxxxxxxx|
     xxxxxxxxxxxxxxxx|
 ----------------------
 
 ```
 
-No idea, bo probably this is the correct way of putting the ESP to the DIN board
+|Board hole | Board green | esp | gpio   |
+|-----------|-------------|-----|--------|
+|8 				  | 16 					| D2  | GPIO02 |
+|9 				  | 17 					| D4  | GPIO04 |
+|10				  | 5  					| Rx2 | GPIO16 |
+|11         | 18 					| Tx2 | GPIO17 |
+|12         | 19 					| D5  | GPIO5  |
+|5          | 2 					| 3v3 | -      |
+|6          | 0 					| gnd | -      |
+
 
 -------------------
 
