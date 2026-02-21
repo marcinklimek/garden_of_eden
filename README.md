@@ -1,5 +1,7 @@
 # Garden of eden
 
+ESP32-based garden automation system using [ESPHome](https://esphome.io/). Manages watering, soil monitoring, water level sensing, and general-purpose switching across multiple boards connected to Home Assistant.
+
 
 ## First use
 
@@ -28,7 +30,8 @@
 2. Each board directory under `configurations/` needs a `secrets.yaml` file (gitignored).
    Copy the example and fill in your credentials:
    ```
-   cp configurations/board_bartek/secrets.yaml.example configurations/board_bartek/secrets.yaml
+   cp configurations/board_beczka/secrets.yaml.example configurations/board_beczka/secrets.yaml
+   cp configurations/board_szklarnia/secrets.yaml.example configurations/board_szklarnia/secrets.yaml
    cp configurations/board_marcin/secrets.yaml.example configurations/board_marcin/secrets.yaml
    cp configurations/board_siren/secrets.yaml.example configurations/board_siren/secrets.yaml
    cp configurations/board_squirt/secrets.yaml.example configurations/board_squirt/secrets.yaml
@@ -36,7 +39,30 @@
 
 3. Edit each `secrets.yaml` with real WiFi and OTA credentials.
 
-4. Compile and upload:
+4. Use the board management tool:
+   ```bash
+   # List available boards and detected serial ports
+   uv run python board.py list
+
+   # Compile a single board
+   uv run python board.py compile beczka
+
+   # Upload via auto-detected serial port
+   uv run python board.py upload beczka
+
+   # Upload to a specific port or IP
+   uv run python board.py upload beczka --device COM3                       # Windows
+   uv run python board.py upload beczka --device /dev/cu.usbserial-0001    # macOS
+   uv run python board.py upload jezus --device 192.168.1.107              # OTA via IP
+
+   # Compile, upload and show logs
+   uv run python board.py run szklarnia --device COM3
+
+   # Compile all boards at once
+   uv run python board.py compile-all
+   ```
+
+   Or use esphome directly:
    ```
    uv run esphome compile configurations/<board_dir>/<config>.yaml
    uv run esphome upload configurations/<board_dir>/<config>.yaml --device /dev/cu.usbserial-0001
@@ -47,7 +73,7 @@
 
 Main yaml file.
 
-```shell
+```yaml
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
@@ -55,10 +81,29 @@ wifi:
 
 secrets.yaml
 
-```shell
+```yaml
 # WiFi credentials
 wifi_ssid: "SSID"
 wifi_password: "password"
+
+# OTA update password
+ota_password: "password"
+```
+
+
+## Project structure
+
+```
+configurations/
+  common/
+    base.yaml           # Shared ESP32 base: wifi, OTA, web server, logging, API
+    monitoring.yaml     # Shared diagnostics: wifi signal, uptime, network info
+  board_beczka/         # Water barrel level monitor
+  board_szklarnia/      # Greenhouse soil & temperature monitor
+  board_marcin/         # Sprinkler controller (3 zones)
+  board_siren/          # 4-channel switch (mermaid)
+  board_squirt/         # 4-channel switch + temperature
+board.py                # Cross-platform build/upload tool (Windows + macOS)
 ```
 
 
@@ -136,41 +181,45 @@ Here, the denominator is the range (2891 – 1198 = 1693). With this formula:
 
 ## Configurations
 
-Each board has its own directory under `configurations/`. Every directory contains a `secrets.yaml` (gitignored) for WiFi and OTA credentials, and one or more device YAML files.
+Each board has its own directory under `configurations/`. Every directory contains a `secrets.yaml` (gitignored) for WiFi and OTA credentials, and one or more device YAML files. Shared configuration (base settings, monitoring sensors) lives in `configurations/common/`.
 
 To set up a new board, copy `secrets.yaml.example` to `secrets.yaml` in the board directory and fill in real credentials.
 
-### board_bartek
+### board_beczka - Water barrel level monitor
+
+Monitors water level in a rain barrel using three float switches at different heights. Reports high/mid/low water levels as binary sensors to Home Assistant, enabling automations like pump control or low-water alerts.
 
 #### beczka.yaml
 
-Water barrel level monitor.
-
 | Setting | Value |
 |---|---|
 | Board | esp32dev (Arduino) |
-| Hostname | `beczka` |
-| Web server | port 80 |
-| Secrets | `wifi_ssid`, `wifi_password` |
+| Hostname | `beczka-esp` |
+| Web server | port 80 (v3) |
+| Secrets | `wifi_ssid`, `wifi_password`, `ota_password` |
 
 **Sensors (binary, GPIO input with pullup):**
 
-| Name | GPIO |
-|---|---|
-| level_high | GPIO21 |
-| level_mid | GPIO19 |
-| level_low | GPIO18 |
+| Name | GPIO | Wire color |
+|---|---|---|
+| level_high | GPIO21 | blue |
+| level_mid | GPIO19 | yellow |
+| level_low | GPIO18 | red |
+
+Power wire: black.
+
+### board_szklarnia - Greenhouse soil & temperature monitor
+
+Monitors soil moisture and air temperature inside a greenhouse. An ADC capacitive sensor reads raw soil moisture which is converted to a 0-100% scale using calibrated dry/wet values. A Dallas 1-Wire sensor reads temperature. A pump output allows automatic or manual irrigation. A binary alert fires when soil moisture drops below 30%.
 
 #### szklarnia.yaml
-
-Greenhouse soil moisture + temperature monitor with pump control.
 
 | Setting | Value |
 |---|---|
 | Board | esp32dev (Arduino) |
-| Hostname | `szklarnia` |
-| Web server | port 80 |
-| Secrets | `wifi_ssid`, `wifi_password` |
+| Hostname | `szklarnia-esp` |
+| Web server | port 80 (v3) |
+| Secrets | `wifi_ssid`, `wifi_password`, `ota_password` |
 
 **Sensors:**
 
@@ -188,11 +237,11 @@ Greenhouse soil moisture + temperature monitor with pump control.
 
 **Alerts:** Low Soil Moisture Alert triggers below 30%.
 
-### board_marcin
+### board_marcin - Sprinkler controller
+
+Automated 3-zone lawn/garden sprinkler system with a shared pump. The ESPHome sprinkler component handles sequencing through sections A, B, C with configurable run durations (default 900s each), auto-advance, and pump start/stop delays. A Dallas temperature sensor provides ambient readings.
 
 #### jezus.yaml
-
-Sprinkler controller with 3 valve zones, pump, and temperature sensor.
 
 | Setting | Value |
 |---|---|
@@ -218,11 +267,11 @@ Sprinkler controller with 3 valve zones, pump, and temperature sensor.
 | Section B | GPIO19 | GPIO5 |
 | Section C | GPIO18 | GPIO5 |
 
-### board_siren
+### board_siren - 4-channel switch (mermaid)
+
+General-purpose 4-channel relay/switch board. Each output can be independently toggled from Home Assistant or the built-in web interface. Used for controlling lights, pumps, or other on/off loads around the garden.
 
 #### siren.yaml
-
-4-channel GPIO switch controller (named "mermaid").
 
 | Setting | Value |
 |---|---|
@@ -241,11 +290,11 @@ Sprinkler controller with 3 valve zones, pump, and temperature sensor.
 | mermaid_03 | GPIO16 |
 | mermaid_04 | GPIO17 |
 
-### board_squirt
+### board_squirt - 4-channel switch + temperature
+
+Same as board_siren but adds a Dallas 1-Wire temperature sensor for environmental monitoring alongside the 4 switching channels.
 
 #### squirt.yaml
-
-4-channel GPIO switch controller with temperature sensor.
 
 | Setting | Value |
 |---|---|
