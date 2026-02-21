@@ -47,12 +47,15 @@ time:
   - platform: homeassistant
     id: homeassistant_time
 
-
+# czarny - zasilanie
+# niebieski high
+# zolty - mid
+# czerwony - low
 # Example configuration entry
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO22
+      number: GPIO21
       mode:
         input: true
         pullup: true
@@ -62,7 +65,7 @@ binary_sensor:
 
   - platform: gpio
     pin:
-      number: GPIO01
+      number: GPIO19
       mode:
         input: true
         pullup: true
@@ -73,7 +76,7 @@ binary_sensor:
 
   - platform: gpio
     pin:
-      number: GPIO03
+      number: GPIO18
       mode:
         input: true
         pullup: true
