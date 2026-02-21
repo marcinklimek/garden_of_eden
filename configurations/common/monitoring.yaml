@@ -1,0 +1,20 @@
+sensor:
+  - platform: wifi_signal
+    name: "${friendly_name} WiFi Signal"
+    unit_of_measurement: dB
+    device_class: signal_strength
+    accuracy_decimals: 0
+    update_interval: 50s
+
+  - platform: uptime
+    type: seconds
+    name: Uptime
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    mac_address:
+      name: "Mac Address"
+    ssid:
+      name: "Wifi SSID"

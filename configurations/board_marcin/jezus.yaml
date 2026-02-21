@@ -1,141 +1,23 @@
 substitutions:
   name: jezus-esp
   friendly_name: jezus
-  
 
-esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: false
-
-
-# ESP32 Board Configuration
-esp32:
-  board: esp32dev
-  framework:
-    type: arduino
-
-ota:
-  - platform: esphome
-    password: !secret ota_password
-    on_progress:
-      then:
-        - logger.log:
-            format: "OTA progress %0.1f%%"
-            args: ["x"]
-    on_begin:
-      then:
-        - logger.log: "OTA start"
-    on_end:
-      then:
-        - logger.log: "OTA end"
-    on_error:
-      then:
-        - logger.log:
-            format: "OTA update error %d"
-            args: ["x"]
-
-# Enable Captive Portal for WiFi setup
-captive_portal:
-
-# Enable Web Server Interface
-web_server:
-  port: 80
-  local: true
-  include_internal: true
-  version: 3
-
-# Enable logging
-logger:
-  
-
-# Time Management
-time:
-  - platform: homeassistant
-    id: homeassistant_time
-
-
-# Enable Home Assistant API
-api:
-
-  
-
-
-improv_serial:
-
-
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-
-
-# Sets up Bluetooth LE (Only on ESP32) to allow the user
-# to provision wifi credentials to the device.
-
-esp32_improv:
-  authorizer: none
-
+packages:
+  base: !include ../common/base.yaml
+  monitoring: !include ../common/monitoring.yaml
 
 one_wire:
   - platform: gpio
     pin:
       number: GPIO4
-
     id: x1
 
 sensor:
-  # WiFi
-  - platform: wifi_signal
-    name: "${friendly_name} WiFi Signal"
-    unit_of_measurement: dB
-    device_class: signal_strength
-    accuracy_decimals: 0
-    update_interval: 10s
-
-  # # Raw ADC reading from soil moisture sensor
-  # - platform: adc
-  #   pin: GPIO36
-  #   name: "soil moisture raw"
-  #   update_interval: 1s
-  #   attenuation: 12db
-  #   id: soil_moisture_raw
-  #   unit_of_measurement: "ADC"
-  #   state_class: "measurement"
-  #   accuracy_decimals: 0
-  #   raw: true
-  
-  # # Convert raw ADC reading to percentage
-  # - platform: template
-  #   name: "soil moisture"
-  #   id: soil_moisture_percentage
-  #   unit_of_measurement: "%"
-  #   device_class: "moisture"
-  #   state_class: "measurement"
-  #   accuracy_decimals: 1
-  #   lambda: |-
-  #     // Convert raw ADC to percentage (0-100%)
-  #     // Using configurable calibration values
-  #     float raw = id(soil_moisture_raw).state;
-  #     float dry_raw = atof("${dry_raw_value}");
-  #     float wet_raw = atof("${wet_raw_value}");
-  #     // Map range: remap from dry_raw-wet_raw to 0-100%
-  #     float percentage = 100.0 - ((raw - wet_raw) / (dry_raw - wet_raw) * 100.0);
-  #     // Constrain value between 0-100%
-  #     if (percentage < 0) percentage = 0;
-  #     if (percentage > 100) percentage = 100;
-  #     return percentage;
-  #   update_interval: 100s
-
-
   - platform: dallas_temp
     name: "temperature"
     update_interval: 30s
     filters:
       - filter_out: NaN
-
-  - platform: uptime
-    type: seconds
-    name: Uptime
 
 output:
   - platform: gpio
@@ -154,14 +36,11 @@ output:
     pin: GPIO5
     id: 'out5'
 
-
 switch:
-
   - platform: output
     name: "sprinkler_valve_sw0"
     output: 'out21'
     id: sprinkler_valve_sw0
-
 
   - platform: output
     name: "sprinkler_valve_sw1"
@@ -183,7 +62,6 @@ sprinkler:
     main_switch: "Sprinklers"
     auto_advance_switch: "Sprinklers Auto Advance"
     reverse_switch: "Sprinklers Reverse"
-    # valve_open_delay: 5s
     pump_start_pump_delay: 5s
     pump_stop_valve_delay: 3s
     valve_overlap: 5s
@@ -205,32 +83,3 @@ sprinkler:
         pump_switch_id: sprinkler_pump_sw
         run_duration: 900s
         valve_switch_id: sprinkler_valve_sw2
-
-# Binary sensor to trigger alerts based on moisture level
-# binary_sensor:
-#   - platform: template
-#     name: "low soil moisture alert"
-#     lambda: |-
-#       return id(soil_moisture_percentage).state < 30.0;
-#     filters:
-#       - delayed_off: 10min
-#     device_class: "moisture"
-
-
-
-#esp32_ble_beacon:
-#  type: iBeacon
-#  uuid: '986e05ec-9dc3-4b60-fe35-69355c69b292'
-
-text_sensor:
-  - platform: wifi_info
-    ip_address:
-      name: "IP Address"
-    mac_address:
-      name: "Mac Address"
-    ssid:
-      name: "Wifi SSID"
-    bssid:
-      name: "Wifi BSSID"
-    # scan_results:
-    #   name: "Latest Scan"
