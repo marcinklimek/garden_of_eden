@@ -1,0 +1,84 @@
+substitutions:
+  name: beczka-esp
+  friendly_name: beczka
+
+packages:
+  base: !include ../common/base.yaml
+  monitoring: !include ../common/monitoring.yaml
+
+# czarny - zasilanie
+# niebieski high
+# zolty - mid
+# czerwony - low
+binary_sensor:
+  # --- czujniki RAW (wewnętrzne, krótki debounce) ---
+  - platform: gpio
+    pin:
+      number: GPIO21
+      mode:
+        input: true
+        pullup: true
+    id: level_high_raw
+    internal: true
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 2s
+
+  - platform: gpio
+    pin:
+      number: GPIO19
+      mode:
+        input: true
+        pullup: true
+    id: level_mid_raw
+    internal: true
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 2s
+
+  - platform: gpio
+    pin:
+      number: GPIO18
+      mode:
+        input: true
+        pullup: true
+    id: level_low_raw
+    internal: true
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 2s
+
+  # --- publiczne entity z wymuszoną monotonicznością ---
+  # Jeśli woda dotyka czujnik X, to fizycznie dotyka też wszystkie poniżej.
+  # Logika OR eliminuje "niemożliwe" stany (np. low=OFF gdy mid=ON).
+  - platform: template
+    name: "level_high"
+    lambda: 'return id(level_high_raw).state;'
+
+  - platform: template
+    name: "level_mid"
+    lambda: 'return id(level_mid_raw).state || id(level_high_raw).state;'
+
+  - platform: template
+    name: "level_low"
+    lambda: 'return id(level_low_raw).state || id(level_mid_raw).state || id(level_high_raw).state;'
+
+  - platform: template
+    name: "level_empty"
+    lambda: 'return !id(level_low_raw).state && !id(level_mid_raw).state && !id(level_high_raw).state;'
+
+# Relay sterujący pompą — pompa podpięta do NO (Normal Open)
+# active-high: HA ON => GPIO HIGH => cewka pod napięciem => styk NO-COM zamknięty => pompa pracuje
+# Pin D22 (GPIO22) wybrany bo board 30-pin DevKit V1 nie ma wyprowadzonego GPIO16/17.
+output:
+  - platform: gpio
+    pin: GPIO22
+    id: pump_out
+
+switch:
+  - platform: output
+    name: "pump"
+    output: pump_out
+    id: pump
+    icon: "mdi:water-pump"
+    restore_mode: ALWAYS_OFF
