@@ -12,7 +12,7 @@ packages:
 
 output:
   - platform: gpio
-    pin: GPIO16
+    pin: GPIO22
     id: out_pump
 
 # Switches to control outputs
