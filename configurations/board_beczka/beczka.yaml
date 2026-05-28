@@ -1,42 +1,151 @@
 substitutions:
-  name: beczka-esp
-  friendly_name: beczka
+  name: beczka-sreczka-esp
+  friendly_name: beczka-sreczka
+  dry_raw_value: "2891"
+  wet_raw_value: "1198"
+  water_threshold_lower: "1900"   # raw poniżej -> woda (ON)
+  water_threshold_upper: "2100"   # raw powyżej -> brak wody (OFF)
 
 packages:
   base: !include ../common/base.yaml
   monitoring: !include ../common/monitoring.yaml
 
+output:
+  - platform: gpio
+    pin: GPIO16
+    id: out_pump
+
+# Switches to control outputs
+switch:
+  - platform: output
+    name: "pompa"
+    output: out_pump
+    icon: "mdi:water-pump"  
+  
 # czarny - zasilanie
 # niebieski high
 # zolty - mid
 # czerwony - low
 binary_sensor:
+  # --- czujniki RAW (wewnętrzne) ---
+  # high: fizyczny switch (pływak) na GPIO21
   - platform: gpio
     pin:
       number: GPIO21
       mode:
         input: true
         pullup: true
+    id: level_high_raw
+    internal: true
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 2s
+
+  # mid: czujnik wilgotności A (histereza 1900/2100, ON = woda)
+  - platform: analog_threshold
+    id: level_mid_raw
+    internal: true
+    sensor_id: soil_moisture_raw_a
+    threshold:
+      upper: ${water_threshold_upper}
+      lower: ${water_threshold_lower}
+    filters:
+      - invert:
+
+  # low: czujnik wilgotności B (histereza 1900/2100, ON = woda)
+  - platform: analog_threshold
+    id: level_low_raw
+    internal: true
+    sensor_id: soil_moisture_raw_b
+    threshold:
+      upper: ${water_threshold_upper}
+      lower: ${water_threshold_lower}
+    filters:
+      - invert:
+
+  # --- publiczne entity z wymuszoną monotonicznością ---
+  # Jeśli woda dotyka czujnik X, to fizycznie dotyka też wszystkie poniżej.
+  # Logika OR eliminuje "niemożliwe" stany (np. low=OFF gdy mid=ON).
+  - platform: template
     name: "level_high"
-    filters:
-      - delayed_on: 10ms
+    device_class: moisture
+    lambda: 'return id(level_high_raw).state;'
 
-  - platform: gpio
-    pin:
-      number: GPIO19
-      mode:
-        input: true
-        pullup: true
+  - platform: template
     name: "level_mid"
-    filters:
-      - delayed_on: 10ms
+    device_class: moisture
+    lambda: 'return id(level_mid_raw).state || id(level_high_raw).state;'
 
-  - platform: gpio
-    pin:
-      number: GPIO18
-      mode:
-        input: true
-        pullup: true
+  - platform: template
     name: "level_low"
-    filters:
-      - delayed_on: 10ms
+    device_class: moisture
+    lambda: 'return id(level_low_raw).state || id(level_mid_raw).state || id(level_high_raw).state;'
+
+  - platform: template
+    name: "level_empty"
+    lambda: 'return !id(level_low_raw).state && !id(level_mid_raw).state && !id(level_high_raw).state;'
+
+sensor:
+  - platform: adc
+    pin: GPIO36
+    name: "Soil Moisture Raw A"
+    update_interval: 1s
+    attenuation: 12db
+    id: soil_moisture_raw_a
+    unit_of_measurement: "ADC"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    raw: true
+
+  - platform: template
+    name: "Soil Moisture"
+    id: soil_moisture_percentage_a
+    unit_of_measurement: "%"
+    device_class: "moisture"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    lambda: |-
+      // Convert raw ADC to percentage (0-100%)
+      // Using configurable calibration values
+      float raw = id(soil_moisture_raw_a).state;
+      float dry_raw = atof("${dry_raw_value}");
+      float wet_raw = atof("${wet_raw_value}");
+      // Map range: remap from dry_raw-wet_raw to 0-100%
+      float percentage = 100.0 - ((raw - wet_raw) / (dry_raw - wet_raw) * 100.0);
+      // Constrain value between 0-100%
+      if (percentage < 0) percentage = 0;
+      if (percentage > 100) percentage = 100;
+      return percentage;
+    update_interval: 3s
+
+  - platform: adc
+    pin: GPIO39
+    name: "Soil Moisture Raw B"
+    update_interval: 1s
+    attenuation: 12db
+    id: soil_moisture_raw_b
+    unit_of_measurement: "ADC"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    raw: true
+
+  - platform: template
+    name: "Soil Moisture"
+    id: soil_moisture_percentage_b
+    unit_of_measurement: "%"
+    device_class: "moisture"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    lambda: |-
+      // Convert raw ADC to percentage (0-100%)
+      // Using configurable calibration values
+      float raw = id(soil_moisture_raw_b).state;
+      float dry_raw = atof("${dry_raw_value}");
+      float wet_raw = atof("${wet_raw_value}");
+      // Map range: remap from dry_raw-wet_raw to 0-100%
+      float percentage = 100.0 - ((raw - wet_raw) / (dry_raw - wet_raw) * 100.0);
+      // Constrain value between 0-100%
+      if (percentage < 0) percentage = 0;
+      if (percentage > 100) percentage = 100;
+      return percentage;
+    update_interval: 3s

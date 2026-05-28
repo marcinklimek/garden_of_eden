@@ -8,19 +8,14 @@ packages:
   base: !include ../common/base.yaml
   monitoring: !include ../common/monitoring.yaml
 
-one_wire:
-  - platform: gpio
-    pin:
-      number: GPIO4
-    id: x1
 
 sensor:
   - platform: adc
     pin: GPIO36
-    name: "Soil Moisture Raw"
+    name: "Soil Moisture Raw A"
     update_interval: 1s
     attenuation: 12db
-    id: soil_moisture_raw
+    id: soil_moisture_raw_a
     unit_of_measurement: "ADC"
     state_class: "measurement"
     accuracy_decimals: 0
@@ -28,7 +23,7 @@ sensor:
 
   - platform: template
     name: "Soil Moisture"
-    id: soil_moisture_percentage
+    id: soil_moisture_percentage_a
     unit_of_measurement: "%"
     device_class: "moisture"
     state_class: "measurement"
@@ -36,7 +31,7 @@ sensor:
     lambda: |-
       // Convert raw ADC to percentage (0-100%)
       // Using configurable calibration values
-      float raw = id(soil_moisture_raw).state;
+      float raw = id(soil_moisture_raw_a).state;
       float dry_raw = atof("${dry_raw_value}");
       float wet_raw = atof("${wet_raw_value}");
       // Map range: remap from dry_raw-wet_raw to 0-100%
@@ -45,28 +40,38 @@ sensor:
       if (percentage < 0) percentage = 0;
       if (percentage > 100) percentage = 100;
       return percentage;
-    update_interval: 100s
+    update_interval: 3s
 
-  - platform: dallas_temp
-    name: "temperatura"
-    update_interval: 5s
+  - platform: adc
+    pin: GPIO39
+    name: "Soil Moisture Raw B"
+    update_interval: 1s
+    attenuation: 12db
+    id: soil_moisture_raw_b
+    unit_of_measurement: "ADC"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    raw: true
 
-output:
-  - platform: gpio
-    pin: GPIO16
-    id: out1
-
-switch:
-  - platform: output
-    name: "pompa"
-    output: out1
-    icon: "mdi:water-pump"
-
-binary_sensor:
   - platform: template
-    name: "Low Soil Moisture Alert"
-    lambda: |-
-      return id(soil_moisture_percentage).state < 30.0;
-    filters:
-      - delayed_off: 10min
+    name: "Soil Moisture"
+    id: soil_moisture_percentage_b
+    unit_of_measurement: "%"
     device_class: "moisture"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    lambda: |-
+      // Convert raw ADC to percentage (0-100%)
+      // Using configurable calibration values
+      float raw = id(soil_moisture_raw_b).state;
+      float dry_raw = atof("${dry_raw_value}");
+      float wet_raw = atof("${wet_raw_value}");
+      // Map range: remap from dry_raw-wet_raw to 0-100%
+      float percentage = 100.0 - ((raw - wet_raw) / (dry_raw - wet_raw) * 100.0);
+      // Constrain value between 0-100%
+      if (percentage < 0) percentage = 0;
+      if (percentage > 100) percentage = 100;
+      return percentage;
+    update_interval: 3s
+
+
