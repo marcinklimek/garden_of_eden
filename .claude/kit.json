@@ -1,0 +1,21 @@
+{
+  "mode": "plugins",
+  "modules": [
+    "board"
+  ],
+  "guard": {
+    "pushAllow": [
+      "marcinklimek/garden_of_eden"
+    ],
+    "ownerOnly": {
+      "urlPatterns": [],
+      "dirPatterns": []
+    },
+    "protect": [],
+    "bashBlock": [],
+    "safeDeleteRoots": []
+  },
+  "plugins": {
+    "applied": "0.6.3"
+  }
+}
