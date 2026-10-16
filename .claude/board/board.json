@@ -1,0 +1,212 @@
+{
+  "serverName": "garden_of_eden-board",
+  "owner": "marcinklimek",
+  "repo": "garden_of_eden",
+  "project": 16,
+  "commentPrefix": "🤖 Claude",
+  "firstRunLookbackDays": 7,
+  "paths": {
+    "taskMap": "task-map.json",
+    "reportLog": "log/log.jsonl",
+    "issueRules": "issue-rules.md",
+    "workRepo": "../.."
+  },
+  "status": {
+    "field": "Status",
+    "default": "Todo",
+    "backlog": "Backlog",
+    "done": "Done",
+    "blocked": "Blocked",
+    "toReject": "To Reject",
+    "rejected": "Rejected",
+    "options": [
+      {
+        "name": "Backlog",
+        "color": "BLUE",
+        "description": "Parked, not planned yet. Ideas get the label waiting."
+      },
+      {
+        "name": "Todo",
+        "color": "GRAY",
+        "description": "Ready: the checklist in issue-rules.md 5a passes. Planned, not started."
+      },
+      {
+        "name": "Doing",
+        "color": "YELLOW",
+        "description": "Claimed: branch task/<n> exists (claim_task). One agent works on it."
+      },
+      {
+        "name": "Blocked",
+        "color": "PURPLE",
+        "description": "Cannot continue. Label blocked and a comment with the reason."
+      },
+      {
+        "name": "Review",
+        "color": "ORANGE",
+        "description": "Work done, gate block posted. Waits for owner review, merge or close."
+      },
+      {
+        "name": "Done",
+        "color": "GREEN",
+        "description": "Merged into main and verified."
+      },
+      {
+        "name": "To Reject",
+        "color": "PINK",
+        "description": "Set only by the owner. Rejected together with dependents."
+      },
+      {
+        "name": "Rejected",
+        "color": "RED",
+        "description": "Closed as not planned, together with dependents."
+      }
+    ]
+  },
+  "component": {
+    "field": "Area",
+    "labelPrefix": "area:",
+    "options": [
+      {
+        "name": "core",
+        "color": "BLUE",
+        "description": "ESPHome board configs under configurations/ (common/ is shared) and legacy sketch"
+      },
+      {
+        "name": "tooling",
+        "color": "GREEN",
+        "description": "board.py compile, upload and run helper"
+      },
+      {
+        "name": "docs",
+        "color": "GRAY",
+        "description": "README and pinout"
+      }
+    ]
+  },
+  "track": {
+    "field": "Track",
+    "labelPrefix": "track:",
+    "options": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  "size": {
+    "field": "Size",
+    "labelPrefix": "size:",
+    "options": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ]
+  },
+  "week": {
+    "field": "Week",
+    "syncMilestone": true,
+    "start": "2026-10-05",
+    "count": 10,
+    "duration": 7,
+    "titleFormat": "Week {n} ({MM}-{DD})"
+  },
+  "dates": {
+    "start": "Start date",
+    "target": "Target date"
+  },
+  "views": [
+    {
+      "name": "Table",
+      "layout": "table"
+    },
+    {
+      "name": "Board",
+      "layout": "board",
+      "columns": "Status"
+    },
+    {
+      "name": "Roadmap",
+      "layout": "roadmap"
+    },
+    {
+      "name": "Board by Area",
+      "layout": "board",
+      "columns": "Status",
+      "groupBy": "Area"
+    },
+    {
+      "name": "Ready",
+      "layout": "table",
+      "filter": "is:open status:Todo"
+    },
+    {
+      "name": "Needs owner",
+      "layout": "table",
+      "filter": "is:open label:needs:user",
+      "sort": [
+        [
+          "Priority",
+          "asc"
+        ]
+      ]
+    },
+    {
+      "name": "Review",
+      "layout": "table",
+      "filter": "is:open status:Review"
+    },
+    {
+      "name": "Doing and blocked",
+      "layout": "table",
+      "filter": "is:open status:Doing,Blocked"
+    }
+  ],
+  "typeLabelPrefix": "type:",
+  "types": [
+    "task",
+    "bug",
+    "decision",
+    "debt",
+    "proposal"
+  ],
+  "titleId": {
+    "bug": "BUG",
+    "decision": "DEC",
+    "proposal": "PROP"
+  },
+  "priority": {
+    "field": "Priority",
+    "options": [
+      "P0",
+      "P1",
+      "P2",
+      "P3"
+    ]
+  },
+  "claim": {
+    "branchPrefix": "task/",
+    "defaultBase": "main",
+    "blockedStatuses": [
+      "Blocked",
+      "To Reject",
+      "Rejected",
+      "Done"
+    ],
+    "defaultAgent": "coordinator",
+    "doingStatus": "Doing"
+  },
+  "handoff": {
+    "requiredKeys": [
+      "handoff",
+      "issue:",
+      "branch:",
+      "done:",
+      "checks:",
+      "not run:",
+      "blocker:",
+      "next:",
+      "learned:"
+    ]
+  }
+}
